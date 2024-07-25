@@ -119,7 +119,7 @@ public class TexturePOTter
                 }
             }
             _isLoaded = true;
-            return false;
+            return true;
         }
     }
 
