@@ -1,6 +1,8 @@
 using System.IO;
 using UnityEngine;
 using UnityEditor;
+using static UnityEditor.U2D.ScriptablePacker;
+using Unity.VisualScripting;
 
 public class TexturePOTter
 {
@@ -10,6 +12,7 @@ public class TexturePOTter
     private Color[,] _pixels;
 
     private bool _isLoaded = false;
+    private string _lastSavedTexturePath;
 
     public TexturePOTter(Texture2D texture)
     {
@@ -76,10 +79,15 @@ public class TexturePOTter
 
         string filePath = $"{path}/{nname}.png";
         File.WriteAllBytes(filePath, pngData);
-
+        _lastSavedTexturePath = filePath;
         string msg = $"New texture saved at: {filePath}";
-        Debug.Log(msg);
         return msg;
+    }
+
+    public void CopyData()
+    {
+        AssetDatabase.Refresh();
+        CopyTextureParameters(AssetDatabase.GetAssetPath(_texture), _lastSavedTexturePath.Replace(Application.dataPath, "Assets"));
     }
 
     public bool SetTextureData()
@@ -145,11 +153,37 @@ public class TexturePOTter
 
         TextureImporter textureImporter = AssetImporter.GetAtPath(texturePath) as TextureImporter;
 
-        bool oldIsReadable = textureImporter.isReadable;
-
         textureImporter.isReadable = enable;
         AssetDatabase.ImportAsset(texturePath, ImportAssetOptions.ForceUpdate);
         Debug.Log($"Read/Write Enabled set to {enable} for {texture.name}");
+    }
+
+    public static void CopyTextureParameters(string sourcePath, string targetPath)
+    {
+        TextureImporter sourceImporter = AssetImporter.GetAtPath(sourcePath) as TextureImporter;
+        if (sourceImporter == null)
+        {
+            Debug.LogError($"Source TextureImporter not found for path: {sourcePath}");
+            return;
+        }
+
+        TextureImporter targetImporter = AssetImporter.GetAtPath(targetPath) as TextureImporter;
+        if (targetImporter == null)
+        {
+            Debug.LogError($"Target TextureImporter not found for path: {targetPath}");
+            return;
+        }
+
+        targetImporter.textureType = sourceImporter.textureType;
+        targetImporter.spriteImportMode = sourceImporter.spriteImportMode;
+        targetImporter.isReadable = sourceImporter.isReadable;
+        targetImporter.wrapMode = sourceImporter.wrapMode;
+        targetImporter.filterMode = sourceImporter.filterMode;
+        targetImporter.anisoLevel = sourceImporter.anisoLevel;
+
+        AssetDatabase.ImportAsset(targetPath, ImportAssetOptions.ForceUpdate);
+
+        Debug.Log($"Copied importer settings from {sourcePath} to {targetPath}");
     }
 #endif
 }
