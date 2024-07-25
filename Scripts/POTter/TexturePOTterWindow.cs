@@ -47,6 +47,22 @@ public class TexturePOTterWindow : EditorWindow
             _outputMSG = "Name rested";
         }
 
+        bool isReadable = _texture == null ? false : _texture.isReadable;
+
+        if (GUILayout.Button($"Set read/write to {!isReadable}"))
+        {
+            if(_texture == null)
+            {
+                _outputMSG = "Set texture befor setting parameters";
+            }
+            else
+            {
+                TexturePOTter.SetReadWriteEnable(_texture, !isReadable);
+                AssetDatabase.Refresh();
+                _outputMSG = $"Read/write was correctly set to {!isReadable}";
+            }
+        }
+
         if (GUILayout.Button("Process"))
         {
             if (_texture == null) 
@@ -56,9 +72,16 @@ public class TexturePOTterWindow : EditorWindow
             else
             {
                 TexturePOTter potter = new TexturePOTter(_texture);
-                string tn = _textureName == DefaultNewTextureName ? null : _textureName;
-                _outputMSG = potter.Process(_path, tn);
-                AssetDatabase.Refresh();
+                if (potter.SetTextureData())
+                {
+                    string tn = _textureName == DefaultNewTextureName ? null : _textureName;
+                    _outputMSG = potter.Process(_path, tn);
+                    AssetDatabase.Refresh();
+                }
+                else
+                {
+                    _outputMSG = "Can`t read texture data. Try enable read write texture parameter";
+                }
             }
         }
 
