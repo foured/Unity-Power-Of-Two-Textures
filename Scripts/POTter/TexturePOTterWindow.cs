@@ -9,6 +9,7 @@ public class TexturePOTterWindow : EditorWindow
     private string _path = Application.dataPath;
     private string _outputMSG = "";
     private Texture2D _texture;
+    private bool _copyData = true;
 
     [MenuItem("Window/TexturePOTter")]
     public static void ShowWindow()
@@ -31,6 +32,7 @@ public class TexturePOTterWindow : EditorWindow
         GUILayout.EndHorizontal();
 
         _textureName = EditorGUILayout.TextField("New texture name", _textureName);
+        _copyData = EditorGUILayout.Toggle("Copy texture settings", _copyData);
         _texture = (Texture2D)EditorGUILayout.ObjectField(_texture, typeof(Texture2D), false);
 
         GUILayout.Space(10);
@@ -76,6 +78,8 @@ public class TexturePOTterWindow : EditorWindow
                 {
                     string tn = _textureName == DefaultNewTextureName ? null : _textureName;
                     _outputMSG = potter.Process(_path, tn);
+                    if (_copyData)
+                        potter.CopyData();
                     AssetDatabase.Refresh();
                 }
                 else
