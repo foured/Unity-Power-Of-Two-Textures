@@ -1,5 +1,6 @@
 using System.IO;
 using UnityEngine;
+using UnityEditor;
 
 public class TexturePOTter
 {
@@ -12,12 +13,13 @@ public class TexturePOTter
 
     public TexturePOTter(Texture2D texture)
     {
-        SetTextureData(texture);
+        _texture = texture;
     }
 
     public string Process(string path, string newTextureName = null)
     {
-        if (!_isLoaded) {
+        if (!_isLoaded)
+        {
             Debug.LogWarning("TexturePOTter wasnt inited.");
             return "";
         }
@@ -69,7 +71,7 @@ public class TexturePOTter
 
         byte[] pngData = newTexture.EncodeToPNG();
         string nname = $"{_texture.name}_POT";
-        if(newTextureName != null)
+        if (newTextureName != null)
             nname = newTextureName;
 
         string filePath = $"{path}/{nname}.png";
@@ -80,12 +82,12 @@ public class TexturePOTter
         return msg;
     }
 
-    private void SetTextureData(Texture2D texture)
+    public bool SetTextureData()
     {
-        _texture = texture;
         if (!_texture.isReadable)
         {
             Debug.LogWarning($"{_texture.name} is marked as unreadable.");
+            return false;
         }
         else
         {
@@ -117,13 +119,14 @@ public class TexturePOTter
                 }
             }
             _isLoaded = true;
+            return false;
         }
     }
 
     private int FindClosestPowerOfTwo(int n)
     {
         int power = 1;
-        while(power < n)
+        while (power < n)
         {
             power *= 2;
         }
@@ -134,4 +137,19 @@ public class TexturePOTter
     {
         return color != Color.clear;
     }
+
+#if UNITY_EDITOR
+    public static void SetReadWriteEnable(Texture2D texture, bool enable)
+    {
+        string texturePath = AssetDatabase.GetAssetPath(texture);
+
+        TextureImporter textureImporter = AssetImporter.GetAtPath(texturePath) as TextureImporter;
+
+        bool oldIsReadable = textureImporter.isReadable;
+
+        textureImporter.isReadable = enable;
+        AssetDatabase.ImportAsset(texturePath, ImportAssetOptions.ForceUpdate);
+        Debug.Log($"Read/Write Enabled set to {enable} for {texture.name}");
+    }
+#endif
 }
