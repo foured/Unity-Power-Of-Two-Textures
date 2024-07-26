@@ -1,8 +1,6 @@
 using System.IO;
 using UnityEngine;
 using UnityEditor;
-using static UnityEditor.U2D.ScriptablePacker;
-using Unity.VisualScripting;
 
 public class TexturePOTter
 {
@@ -19,7 +17,7 @@ public class TexturePOTter
         _texture = texture;
     }
 
-    public string Process(string path, string newTextureName = null)
+    public string ProcessNew(string path, string newTextureName = null)
     {
         if (!_isLoaded)
         {
@@ -59,12 +57,13 @@ public class TexturePOTter
 
         Color[] npixels1D = new Color[wcpot * hcpot];
 
-        for (int y = 0; y < wcpot; y++)
+        for (int x = 0; x < wcpot; x++)
         {
-            for (int x = 0; x < hcpot; x++)
+            for (int y = 0; y < hcpot; y++)
             {
                 int index = y * wcpot + x;
-                npixels1D[index] = npixels[x, y];
+                Color color = npixels[x, y];
+                npixels1D[index] = color;
             }
         }
 
@@ -80,13 +79,67 @@ public class TexturePOTter
         string filePath = $"{path}/{nname}.png";
         File.WriteAllBytes(filePath, pngData);
         _lastSavedTexturePath = filePath;
+
         string msg = $"New texture saved at: {filePath}";
+        return msg;
+    }
+
+    public string ProcessCurrent()
+    {
+        if (!_isLoaded)
+        {
+            Debug.LogWarning("TexturePOTter wasn't initialized.");
+            return "";
+        }
+
+        int nw = _max.x - _min.x;
+        int nh = _max.y - _min.y;
+
+        int wcpot = FindClosestPowerOfTwo(nw);
+        int hcpot = FindClosestPowerOfTwo(nh);
+
+        int woffset = (wcpot - nw) / 2;
+        int hoffset = (hcpot - nh) / 2;
+
+        Color[] npixels1D = new Color[wcpot * hcpot];
+
+        for (int x = 0; x < wcpot; x++)
+        {
+            for (int y = 0; y < hcpot; y++)
+            {
+                int index = y * wcpot + x;
+                if (x >= woffset && x < (nw + woffset) && y >= hoffset && y < (nh + hoffset))
+                {
+                    int oldX = x - woffset + _min.x;
+                    int oldY = y - hoffset + _min.y;
+                    npixels1D[index] = _pixels[oldX, oldY];
+                }
+                else
+                {
+                    npixels1D[index] = Color.clear;
+                }
+            }
+        }
+
+        _texture.Reinitialize(wcpot, hcpot);
+        _texture.SetPixels(npixels1D);
+        _texture.Apply();
+
+#if UNITY_EDITOR
+        EditorUtility.SetDirty(_texture);
+        AssetDatabase.SaveAssets();
+#endif
+
+        string msg = $"Existing texture modified and saved: {_texture.name}";
         return msg;
     }
 
     public void CopyData()
     {
+#if UNITY_EDITOR
         AssetDatabase.Refresh();
+#endif
+
         CopyTextureParameters(AssetDatabase.GetAssetPath(_texture), _lastSavedTexturePath.Replace(Application.dataPath, "Assets"));
     }
 
